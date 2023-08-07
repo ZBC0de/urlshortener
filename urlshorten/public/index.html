@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+    <meta charset="UTF-8">
+    <script src = ./modules/jquery.js></script>
+    <script src="./modules/chart.js"></script>
+    <script src="./modules/vue.js"></script>
+    <script src="./modules/socket.io.js"></script>
+    <script src="./modules/moment.js"></script>
+    <script src="./modules/md5.js"></script>
+    <script src="./modules/simplecopy.js"></script>
+
+    <title>Vue Template</title>
+
+    <style>
+
+        body{padding: 0; margin:0;}
+        .convert{position: relative; width: 90vw; height: 90vh; left: 5vw; top: 5vh; background-color: black;}
+        .submit{position: relative; width: fit-content; height: 30px; line-height: 30px; font-size: 15px; font-family: monospace; background-color: #76ff9a; border-radius: 5px; color: white;}
+
+
+    </style>
+
+</head>
+
+<body>
+
+<div id = vueApp>
+
+    <convert></convert>
+
+</div>
+
+
+<script>
+
+    let webSocket = io.connect(location.host);
+    let msg
+
+    Vue.component('convert', {
+        /* Component */
+        template: `
+                  <div class = convert>
+                    <input v-model="orgUrl" style="position: relative; background-color: #282828; color: white; font-family: monospace;" placeholder="Original URL">
+                    <button class="submit" @click="emit(orgUrl)">Convert</button>
+                    <div style="width: fit-content; color: white; font-family: monospace;">{{ this.shUrl }}</div>
+                    <img @click="clipBoard" src="https://imgs.search.brave.com/8usEFjm6V_qvKMTX_op1umn4gpV-hpXpYvawu87bKuc/rs:fit:860:0:0/g:ce/aHR0cHM6Ly9pY29u/cy52ZXJ5aWNvbi5j/b20vcG5nLzEyOC9i/dXNpbmVzcy9jb21t/b24tYnVzaW5lc3Mt/YmFzaWMtaWNvbnMv/Y29weS0yMTIucG5n" width="25px" height="25px" style="cursor: pointer;">
+                  </div>
+                    `,
+        data() {
+            return {
+                orgUrl: '',
+                shUrl: '',
+            }
+        },
+        methods: { // all methods for components go here
+            emit(url){
+                webSocket.emit('js', JSON.stringify({type:'recUrl', url:url}))
+            },
+            clipBoard() {
+                simplecopy(`${this.shUrl}`);
+            },
+        },
+        computed: { // any function here is run when data is passed to component
+
+        },
+        mounted(){ // here is where things like event listeners go
+            this.$root.$on('shortUrl', (url) => {
+                this.shUrl = url
+            })
+        }
+    })
+
+    let app = new Vue({
+        el: '#vueApp',
+        data() {
+            return {
+            }
+        },
+        methods: {
+
+        },
+        mounted() {
+
+        }
+    })
+
+    webSocket.on('html', function(data) {
+        try {
+            msg = JSON.parse(data);
+
+            switch (msg.type) {
+                case 'recUrl':
+                    app.$root.$emit('shortUrl', msg.url)
+                    break;
+                default:
+                    break;
+            }
+        } catch (ex) {
+            console.log(ex.message);
+
+        }
+    })
+
+
+</script>
+</body>
+</html>
+
